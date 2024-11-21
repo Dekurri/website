@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试用静态网址部署</title>
+    <style>
+        body{
+            margin: 0;
+            height: 100vh;
+            background-color: #eee;
+        }
+        /*{
+            border: 1px solid black;
+        }*/
+        .flex{
+            display: flex;
+        }
+        .white{
+            background-color: white;
+    
+        }
+        .columm{
+            flex-direction: column;
+        }
+        .row{
+            flex-direction: row;
+        }
+        .flex1{
+            flex: 1;
+        }
+        .mg8{
+            margin: 8px;
+        }
+        .mgr8{
+            margin-right: 8px;
+        }
+        .mgt8{
+            margin-top: 8px;
+        }
+        .rolling{
+            overflow: auto;
+        }
+        .grey{
+            background-color: #eee;
+        }
+        .shadow{
+            box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+        }
+        .center{
+            display: flex;
+            height: 100px;
+            align-items:center;
+            justify-content:center ;
+            flex-direction: column;
+        }
+        .border{
+            border-bottom: 1px solid black;
+        }
+        .guide{
+            padding: 10px 20px;
+            border-bottom: 1px solid grey;
+            font-size: 40px;
+            color: rgb(153, 207, 254);
+        }
+    </style>
+</head>
+<body class="flex shadow">
+    <!--侧边栏-->
+    <div style="width: 200px;z-index: 2;" class="white mgt8 mgr8 shadow">
+        <!--校徽栏-->
+        <div class="flex center border shadow">
+            <img 
+            src="logo.jpg" 
+            height="100px" 
+            width="100px" 
+            alt="校徽"
+            />
+        </div>
+        <!--导航栏-->
+        <div class="guide">索引</div>
+    </div>
+     <!--主区域-->
+     <div style="flex: 1;" class=" flex columm">
+        <!--头部栏-->
+        <div style="height: 100px;z-index: 1;" class=" flex white mgt8 shadow columm">
+            <div class="flex center">
+                <b>基于多模态智能感知的实验室用电管理系统研究</b>
+            </div>
+        </div>
+        <!--内容栏-->
+        <div class="flex1 flex rolling">
+            <!--左区域-->
+            <div style="flex: 3 " class=" flex columm mgr8">
+                <!--列表-->
+                <div class="flex columm">
+                    <!--列表项-->
+                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow"></div>
+                    <!--列表项-->
+                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow"></div>
+                    <!--列表项-->
+                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow"></div>
+                    <!--列表项-->
+                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow"></div>
+                    <!--列表项-->
+                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow"></div>
+                    <!--列表项-->
+                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow"></div>
+                    <!--列表项-->
+                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow"></div>
+                </div>
+            </div>
+            <!--右区域-->
+            <div style="flex: 1;" class="flex columm">
+                <!--提示-->
+                <div style="height: 200px;" class="flex white shadow"></div>
+                <!--消息-->
+                <div style="height: 350px;" class="flex white mgt8 shadow"></div>
+            </div>
+        </div>
+     </div>
+</body>
+</html>
