@@ -1,138 +1,207 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>测试用静态网址部署</title>
+    <title>实验室用电管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body{
-            margin: 0;
-            height: 100vh;
-            background-color: #eee;
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            animation: pulse 2s infinite;
         }
-        /*{
-            border: 1px solid black;
-        }*/
-        .flex{
-            display: flex;
-        }
-        .white{
-            background-color: white;
-    
-        }
-        .columm{
-            flex-direction: column;
-        }
-        .row{
-            flex-direction: row;
-        }
-        .flex1{
-            flex: 1;
-        }
-        .mg8{
-            margin: 8px;
-        }
-        .mgr8{
-            margin-right: 8px;
-        }
-        .mgt8{
-            margin-top: 8px;
-        }
-        .rolling{
-            overflow: auto;
-        }
-        .grey{
-            background-color: #eee;
-        }
-        .shadow{
-            box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-        }
-        .center{
-            display: flex;
-            height: 100px;
-            align-items:center;
-            justify-content:center ;
-            flex-direction: column;
-        }
-        .border{
-            border-bottom: 1px solid black;
-        }
-        .guide{
-            padding: 10px 20px;
-            border-bottom: 1px solid grey;
-            font-size: 40px;
-            color: rgb(153, 207, 254);
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
         }
     </style>
 </head>
-<body class="flex shadow">
-    <!--侧边栏-->
-    <div style="width: 200px;z-index: 2;" class="white mgt8 mgr8 shadow">
-        <!--校徽栏-->
-        <div class="flex center border shadow">
-            <img 
-            src="logo.jpg" 
-            height="100px" 
-            width="100px" 
-            alt="校徽"
-            />
+
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4 max-w-4xl">
+        <!-- 系统标题和状态 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">基于多模态智能感知的实验室用电管理</h1>
+            <div class="flex items-center">
+                <div class="status-dot bg-green-500 rounded-full mr-2"></div>
+                <span class="text-gray-600">系统状态: 正常运行中</span>
+            </div>
         </div>
-        <!--导航栏-->
-        <div class="guide">索引</div>
-        <dive class="flex">（使用javascript实现跳转）</dive>
+
+        <!-- 指令控制区域 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">指令控制</h2>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2">输入指令...</label>
+                <div class="flex">
+                    <input type="text" id="command-input"
+                        class="flex-1 border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="输入指令...">
+                    <button id="start-voice"
+                        class="bg-green-600 text-white px-4 py-2 hover:bg-green-700 transition">语音输入</button>
+                    <button id="stop-voice"
+                        class="bg-red-600 text-white px-4 py-2 hover:bg-red-700 transition">停止语音</button>
+                    <button id="send-command"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 transition">执行指令</button>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">提示: 使用 "help" 查看所有可用指令</p>
+            </div>
+
+            <!-- 指令历史 -->
+            <div>
+                <h3 class="font-medium text-gray-700 mb-2">指令历史</h3>
+                <ul id="command-history" class="space-y-2">
+                    <!-- 动态添加指令历史 -->
+                </ul>
+            </div>
+        </div>
+
+        <script>
+            // 获取 DOM 元素
+            const commandInput = document.getElementById('command-input');
+            const sendCommandButton = document.getElementById('send-command');
+            const startVoiceButton = document.getElementById('start-voice');
+            const stopVoiceButton = document.getElementById('stop-voice');
+        
+            let mediaRecorder;
+            let audioChunks = [];
+            let mimeType = '';
+            let recognition;
+        
+            // 检查浏览器是否支持录音功能
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // 初始化语音识别
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    recognition = new SpeechRecognition();
+                    recognition.lang = 'zh-CN'; // 设置语言为中文
+                    recognition.interimResults = true; // 启用实时结果
+                    recognition.continuous = true; // 连续识别
+        
+                    recognition.onresult = (event) => {
+                        const transcript = Array.from(event.results)
+                            .map(result => result[0].transcript)
+                            .join('');
+                        commandInput.value = transcript; // 实时更新文本框内容
+                    };
+        
+                    recognition.onerror = (event) => {
+                        console.error('语音识别错误:', event.error);
+                    };
+                } else {
+                    alert('您的浏览器不支持语音识别功能');
+                }
+        
+                startVoiceButton.addEventListener('click', async () => {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+                        // 优先使用 audio/webm 格式
+                        if (MediaRecorder.isTypeSupported('audio/webm')) {
+                            mimeType = 'audio/webm';
+                            mediaRecorder = new MediaRecorder(stream, { mimeType });
+                        } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+                            mimeType = 'audio/wav';
+                            mediaRecorder = new MediaRecorder(stream, { mimeType });
+                        } else {
+                            alert('当前浏览器不支持 audio/webm 或 audio/wav 格式');
+                            return;
+                        }
+        
+                        mediaRecorder.ondataavailable = (event) => {
+                            audioChunks.push(event.data);
+                        };
+        
+                        mediaRecorder.onstop = async () => {
+                            const audioBlob = new Blob(audioChunks, { type: mimeType });
+                            audioChunks = []; // 清空音频数据
+        
+                            // 将音频数据发送到后端
+                            const formData = new FormData();
+                            const fileExtension = mimeType === 'audio/webm' ? 'webm' : 'wav';
+                            formData.append('audio', audioBlob, `audio.${fileExtension}`);
+        
+                            try {
+                                const response = await fetch('http://your-backend-url/api/audio', {
+                                    method: 'POST',
+                                    body: formData,
+                                });
+        
+                                if (response.ok) {
+                                    const result = await response.json();
+                                    console.log('后端返回:', result);
+        
+                                    // 显示后端返回的结果
+                                    const historyList = document.getElementById('command-history');
+                                    const newHistoryItem = document.createElement('li');
+                                    newHistoryItem.className = 'flex flex-col border-b border-gray-100 pb-2';
+                                    newHistoryItem.innerHTML = `
+                                        <div class="flex justify-between items-center">
+                                            <span>• 语音指令</span>
+                                            <span class="text-sm text-gray-500">${new Date().toLocaleTimeString()}</span>
+                                        </div>
+                                        <div class="text-sm text-gray-700 mt-1">返回结果: ${result.message || '无返回数据'}</div>
+                                    `;
+                                    historyList.appendChild(newHistoryItem);
+        
+                                    // 使用 SpeechSynthesis API 进行语音播报
+                                    const utterance = new SpeechSynthesisUtterance(result.message || '无返回数据');
+                                    speechSynthesis.speak(utterance);
+                                } else {
+                                    alert('语音发送失败，请检查后端服务');
+                                }
+                            } catch (error) {
+                                console.error('发送语音时出错:', error);
+                                alert('发送语音时出错，请检查网络连接');
+                            }
+                        };
+        
+                        mediaRecorder.start();
+                        console.log('开始录音');
+        
+                        // 开始语音识别
+                        if (recognition) {
+                            recognition.start();
+                            console.log('开始语音识别');
+                        }
+                    } catch (error) {
+                        console.error('无法访问麦克风:', error);
+                        alert('无法访问麦克风，请检查权限设置');
+                    }
+                });
+        
+                stopVoiceButton.addEventListener('click', () => {
+                    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                        mediaRecorder.stop();
+                        console.log('停止录音');
+                    }
+        
+                    // 停止语音识别
+                    if (recognition) {
+                        recognition.stop();
+                        console.log('停止语音识别');
+                    }
+                });
+            } else {
+                alert('您的浏览器不支持录音功能');
+                startVoiceButton.disabled = true;
+                stopVoiceButton.disabled = true;
+            }
+        </script>
     </div>
-     <!--主区域-->
-     <div style="flex: 1;" class=" flex columm">
-        <!--头部栏-->
-        <div style="height: 100px;z-index: 1;" class=" flex white mgt8 shadow columm">
-            <div class="flex center">
-                <b>基于多模态智能感知的实验室用电管理系统研究</b>
-            </div>
-        </div>
-        <!--内容栏-->
-        <div class="flex1 flex rolling">
-            <!--左区域-->
-            <div style="flex: 3 " class=" flex columm mgr8">
-                <!--列表-->
-                <div class="flex columm">
-                    <!--列表项-->
-                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow">
-                        项目介绍————
-                    </div>
-                    <!--列表项-->
-                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow">
-                        项目实现————
-                    </div>
-                    <!--列表项-->
-                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow">
-                        项目使用————
-                    </div>
-                    <!--列表项-->
-                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow">
-                        代码展示————
-                    </div>
-                    <!--列表项-->
-                    <div style="height: 160px;"class=" white mgt8 mgr8 shadow">
-                        使用场景————
-                    </div>
-                </div>
-            </div>
-            <!--右区域-->
-            <div style="flex: 1;" class="flex columm">
-                <!--提示-->
-                <div style="height: 200px;" class="flex white shadow">
-                    <div>
-                        参与人员（占位）
-                    </div>
-                </div>
-                <!--消息-->
-                <div style="height: 350px;" class="flex white mgt8 shadow">
-                    <div>
-                        友情链接（占位）
-                    </div>
-                </div>
-            </div>
-        </div>
-     </div>
 </body>
+
 </html>
