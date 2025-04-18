@@ -75,12 +75,12 @@
             const sendCommandButton = document.getElementById('send-command');
             const startVoiceButton = document.getElementById('start-voice');
             const stopVoiceButton = document.getElementById('stop-voice');
-        
+
             let mediaRecorder;
             let audioChunks = [];
             let mimeType = '';
             let recognition;
-        
+
             // 检查浏览器是否支持录音功能
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 // 初始化语音识别
@@ -89,26 +89,37 @@
                     recognition = new SpeechRecognition();
                     recognition.lang = 'zh-CN'; // 设置语言为中文
                     recognition.interimResults = true; // 启用实时结果
-                    recognition.continuous = true; // 连续识别
-        
+                    recognition.continuous = false; // 连续识别
+
                     recognition.onresult = (event) => {
                         const transcript = Array.from(event.results)
                             .map(result => result[0].transcript)
                             .join('');
                         commandInput.value = transcript; // 实时更新文本框内容
+
+                        // 如果语音识别结果是最终结果，则自动停止
+                        if (event.results[0].isFinal) {
+                            console.log('语音识别完成，自动停止');
+                            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                                mediaRecorder.stop(); // 停止录音
+                                console.log('录音已停止');
+                            }
+                            recognition.stop(); // 停止语音识别
+                            console.log('语音识别已停止');
+                        }
                     };
-        
+
                     recognition.onerror = (event) => {
                         console.error('语音识别错误:', event.error);
                     };
                 } else {
                     alert('您的浏览器不支持语音识别功能');
                 }
-        
+
                 startVoiceButton.addEventListener('click', async () => {
                     try {
                         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
+
                         // 优先使用 audio/webm 格式
                         if (MediaRecorder.isTypeSupported('audio/webm')) {
                             mimeType = 'audio/webm';
@@ -120,58 +131,60 @@
                             alert('当前浏览器不支持 audio/webm 或 audio/wav 格式');
                             return;
                         }
-        
+
                         mediaRecorder.ondataavailable = (event) => {
                             audioChunks.push(event.data);
                         };
-        
+
                         mediaRecorder.onstop = async () => {
                             const audioBlob = new Blob(audioChunks, { type: mimeType });
                             audioChunks = []; // 清空音频数据
-        
-                            // 将音频数据发送到后端
-                            const formData = new FormData();
-                            const fileExtension = mimeType === 'audio/webm' ? 'webm' : 'wav';
-                            formData.append('audio', audioBlob, `audio.${fileExtension}`);
-        
-                            try {
-                                const response = await fetch('http://your-backend-url/api/audio', {
-                                    method: 'POST',
-                                    body: formData,
-                                });
-        
-                                if (response.ok) {
-                                    const result = await response.json();
-                                    console.log('后端返回:', result);
-        
-                                    // 显示后端返回的结果
-                                    const historyList = document.getElementById('command-history');
-                                    const newHistoryItem = document.createElement('li');
-                                    newHistoryItem.className = 'flex flex-col border-b border-gray-100 pb-2';
-                                    newHistoryItem.innerHTML = `
-                                        <div class="flex justify-between items-center">
-                                            <span>• 语音指令</span>
-                                            <span class="text-sm text-gray-500">${new Date().toLocaleTimeString()}</span>
-                                        </div>
-                                        <div class="text-sm text-gray-700 mt-1">返回结果: ${result.message || '无返回数据'}</div>
-                                    `;
-                                    historyList.appendChild(newHistoryItem);
-        
-                                    // 使用 SpeechSynthesis API 进行语音播报
-                                    const utterance = new SpeechSynthesisUtterance(result.message || '无返回数据');
-                                    speechSynthesis.speak(utterance);
-                                } else {
-                                    alert('语音发送失败，请检查后端服务');
+
+                            // 将音频数据转换为 Base64
+                            const reader = new FileReader();
+                            reader.readAsDataURL(audioBlob);
+                            reader.onloadend = async () => {
+                                const base64Audio = encodeURIComponent(reader.result);
+
+                                try {
+                                    // 使用 GET 请求发送音频数据
+                                    const response = await fetch(`http://www.temp-api.com/api/v2?flag=开灯&audio=${base64Audio}`, {
+                                        method: 'GET',
+                                    });
+
+                                    if (response.ok) {
+                                        const result = await response.json();
+                                        console.log('后端返回:', result);
+
+                                        // 显示后端返回的结果
+                                        const historyList = document.getElementById('command-history');
+                                        const newHistoryItem = document.createElement('li');
+                                        newHistoryItem.className = 'flex flex-col border-b border-gray-100 pb-2';
+                                        newHistoryItem.innerHTML = `
+                                            <div class="flex justify-between items-center">
+                                                <span>• 语音指令</span>
+                                                <span class="text-sm text-gray-500">${new Date().toLocaleTimeString()}</span>
+                                            </div>
+                                            <div class="text-sm text-gray-700 mt-1">返回结果: ${result.message || '无返回数据'}</div>
+                                        `;
+                                        historyList.appendChild(newHistoryItem);
+
+                                        // 使用 SpeechSynthesis API 进行语音播报
+                                        const utterance = new SpeechSynthesisUtterance(result.message || '无返回数据');
+                                        speechSynthesis.speak(utterance);
+                                    } else {
+                                        alert('语音发送失败，请检查后端服务');
+                                    }
+                                } catch (error) {
+                                    console.error('发送语音时出错:', error);
+                                    alert('发送语音时出错，请检查网络连接');
                                 }
-                            } catch (error) {
-                                console.error('发送语音时出错:', error);
-                                alert('发送语音时出错，请检查网络连接');
-                            }
+                            };
                         };
-        
+
                         mediaRecorder.start();
                         console.log('开始录音');
-        
+
                         // 开始语音识别
                         if (recognition) {
                             recognition.start();
@@ -182,13 +195,13 @@
                         alert('无法访问麦克风，请检查权限设置');
                     }
                 });
-        
+
                 stopVoiceButton.addEventListener('click', () => {
                     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                         mediaRecorder.stop();
                         console.log('停止录音');
                     }
-        
+
                     // 停止语音识别
                     if (recognition) {
                         recognition.stop();
@@ -200,6 +213,49 @@
                 startVoiceButton.disabled = true;
                 stopVoiceButton.disabled = true;
             }
+
+            // 添加“执行指令”按钮的点击事件
+            sendCommandButton.addEventListener('click', async () => {
+                const command = commandInput.value.trim();
+                if (!command) {
+                    alert('请输入指令后再执行');
+                    return;
+                }
+
+                try {
+                    // 使用 GET 请求发送文本指令
+                    const response = await fetch(`http://www.temp-api.com/api/v2?flag=开灯&command=${encodeURIComponent(command)}`, {
+                        method: 'GET',
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('后端返回:', result);
+
+                        // 显示后端返回的结果
+                        const historyList = document.getElementById('command-history');
+                        const newHistoryItem = document.createElement('li');
+                        newHistoryItem.className = 'flex flex-col border-b border-gray-100 pb-2';
+                        newHistoryItem.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <span>• 文本指令</span>
+                                <span class="text-sm text-gray-500">${new Date().toLocaleTimeString()}</span>
+                            </div>
+                            <div class="text-sm text-gray-700 mt-1">返回结果: ${result.message || '无返回数据'}</div>
+                        `;
+                        historyList.appendChild(newHistoryItem);
+
+                        // 使用 SpeechSynthesis API 进行语音播报
+                        const utterance = new SpeechSynthesisUtterance(result.message || '无返回数据');
+                        speechSynthesis.speak(utterance);
+                    } else {
+                        alert('指令发送失败，请检查后端服务');
+                    }
+                } catch (error) {
+                    console.error('发送指令时出错:', error);
+                    alert('发送指令时出错，请检查网络连接');
+                }
+            });
         </script>
     </div>
 </body>
